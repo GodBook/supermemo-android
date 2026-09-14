@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 生物识别权限（用于私密备忘录与应用锁），零网络权限确保绝对本地隐私 -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+
+    <application
+        android:name=".SuperMemoApp"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/file_paths"
+        android:fullBackupContent="@xml/file_paths"
+        android:icon="@android:drawable/ic_menu_edit"
+        android:label="@string/app_name"
+        android:roundIcon="@android:drawable/ic_menu_edit"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.SuperMemo">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- 支持通过系统分享/打开外部文本或Markdown文件直接导入 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+        <!-- 桌面小部件 (Glance AppWidget) -->
+        <receiver
+            android:name=".widget.SuperMemoWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/super_memo_widget_info" />
+        </receiver>
+
+        <!-- 文件提供者（用于导出分享 Markdown 文件与备忘录长图卡片） -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+    </application>
+
+</manifest>

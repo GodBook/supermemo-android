@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">超级备忘录</string>
+    <string name="widget_name">备忘录看板</string>
+    <string name="widget_description">在桌面快速查看与添加备忘录</string>
+    <string name="search_hint">搜索备忘录、拼音、首字母...</string>
+    <string name="new_note">新建备忘录</string>
+    <string name="save">保存</string>
+    <string name="delete">删除</string>
+    <string name="cancel">取消</string>
+    <string name="confirm">确认</string>
+    <string name="all_notes">全部备忘录</string>
+    <string name="trash">回收站</string>
+    <string name="archive">归档箱</string>
+    <string name="categories">分组分类</string>
+    <string name="tags">标签</string>
+    <string name="settings">设置</string>
+    <string name="backup_and_restore">备份与恢复</string>
+</resources>
