@@ -151,6 +151,24 @@ class HomeViewModel(
         }
     }
 
+    fun setNoteAsTodo(noteId: Long) {
+        viewModelScope.launch {
+            repository.setNoteAsTodo(noteId)
+        }
+    }
+
+    fun setNoteAllCompleted(noteId: Long) {
+        viewModelScope.launch {
+            repository.setNoteAllCompleted(noteId)
+        }
+    }
+
+    fun addChecklistItem(noteId: Long, text: String) {
+        viewModelScope.launch {
+            repository.addChecklistItem(noteId, text)
+        }
+    }
+
     fun enterSelectionMode(initialNoteId: Long? = null) {
         _isSelectionMode.value = true
         _selectedNoteIds.value = if (initialNoteId != null) setOf(initialNoteId) else emptySet()

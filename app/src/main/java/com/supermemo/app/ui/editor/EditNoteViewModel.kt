@@ -10,6 +10,7 @@ import com.supermemo.app.data.local.entity.NoteEntity
 import com.supermemo.app.data.local.model.NoteWithDetails
 import com.supermemo.app.data.repository.NoteRepository
 import com.supermemo.app.domain.engine.BackupEngine
+import com.supermemo.app.domain.engine.MarkdownParser
 import com.supermemo.app.util.ImageStorageHelper
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -87,6 +88,18 @@ class EditNoteViewModel(
             isSaved = false
         )
         scheduleAutoSave()
+    }
+
+    fun convertToTodoList() {
+        val currentContent = _uiState.value.content
+        val newContent = MarkdownParser.convertContentToTodoList(currentContent, _uiState.value.title)
+        updateContent(newContent)
+    }
+
+    fun setAllChecklistStatus(isCompleted: Boolean) {
+        val currentContent = _uiState.value.content
+        val newContent = MarkdownParser.setAllChecklistStatus(currentContent, isCompleted, _uiState.value.title)
+        updateContent(newContent)
     }
 
     fun setCategory(catId: Long?) {

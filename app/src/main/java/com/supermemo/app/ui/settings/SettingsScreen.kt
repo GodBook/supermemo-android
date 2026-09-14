@@ -87,7 +87,7 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val currentVersion = "1.1.2"
+    val currentVersion = "1.1.3"
 
     val blinkSettings by PreferenceManager.settingsFlow.collectAsState()
 

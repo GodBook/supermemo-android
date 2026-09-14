@@ -129,6 +129,76 @@ object MarkdownParser {
     }
 
     /**
+     * 将备忘录正文整体转为待办事项清单（普通文本加 `- [ ]`，已有待办重置为未完成待办）
+     */
+    fun convertContentToTodoList(content: String, fallbackTitle: String = ""): String {
+        val lines = content.lines()
+        val nonBlankLines = lines.filter { it.isNotBlank() }
+        if (nonBlankLines.isEmpty()) {
+            val fallback = if (fallbackTitle.isNotBlank()) fallbackTitle else "待办事项"
+            return "- [ ] $fallback"
+        }
+        return lines.joinToString("\n") { line ->
+            val trimmed = line.trim()
+            if (trimmed.isEmpty()) {
+                line
+            } else if (CHECKLIST_REGEX.containsMatchIn(line)) {
+                // 已有待办项重置为未完成待办
+                line.replace(Regex("""\[[xX]\]"""), "[ ]")
+            } else {
+                // 普通文本转为未完成待办项
+                "- [ ] $trimmed"
+            }
+        }
+    }
+
+    /**
+     * 将备忘录中所有待办项设置为指定状态（true: 全部完成, false: 全部设为待办未完成）
+     * 若不是待办清单，则整体转为对应状态的待办清单
+     */
+    fun setAllChecklistStatus(content: String, isCompleted: Boolean, fallbackTitle: String = ""): String {
+        val targetTag = if (isCompleted) "[x]" else "[ ]"
+        val existingItems = extractChecklistItems(content)
+        if (existingItems.isEmpty()) {
+            // 普通文本，转为对应状态的待办项
+            val lines = content.lines()
+            val nonBlankLines = lines.filter { it.isNotBlank() }
+            if (nonBlankLines.isEmpty()) {
+                val fallback = if (fallbackTitle.isNotBlank()) fallbackTitle else "待办事项"
+                return "- $targetTag $fallback"
+            }
+            return lines.joinToString("\n") { line ->
+                val trimmed = line.trim()
+                if (trimmed.isEmpty()) line else "- $targetTag $trimmed"
+            }
+        }
+
+        // 原本包含待办项，统一批量修改
+        val lines = content.lines().toMutableList()
+        for (i in lines.indices) {
+            val line = lines[i]
+            if (CHECKLIST_REGEX.containsMatchIn(line)) {
+                lines[i] = line.replace(Regex("""\[[ xX]\]"""), targetTag)
+            }
+        }
+        return lines.joinToString("\n")
+    }
+
+    /**
+     * 快速追加一条待办事项
+     */
+    fun appendChecklistItem(content: String, text: String): String {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return content
+        val newItem = "- [ ] $trimmed"
+        return if (content.isBlank()) {
+            newItem
+        } else {
+            content.trimEnd() + "\n" + newItem
+        }
+    }
+
+    /**
      * 将 Markdown 文本解析转换为富文本 AnnotatedString
      */
     fun renderMarkdown(

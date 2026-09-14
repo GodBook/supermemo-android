@@ -164,6 +164,88 @@ class NoteRepository(
         )
     }
 
+    /**
+     * 将备忘录整体设置为待办事项（普通文本转为未完成待办，已有待办重置为未完成待办）
+     */
+    suspend fun setNoteAsTodo(noteId: Long) = withContext(Dispatchers.IO) {
+        val noteDetails = noteDao.getNoteByIdSync(noteId) ?: return@withContext
+        val newContent = MarkdownParser.convertContentToTodoList(
+            noteDetails.note.content,
+            noteDetails.note.title
+        )
+        val updatedNote = noteDetails.note.copy(
+            content = newContent,
+            updatedAt = System.currentTimeMillis()
+        )
+        noteDao.updateNote(updatedNote)
+
+        val fullPinyin = PinyinEngine.toFullPinyin("${updatedNote.title} ${updatedNote.content}")
+        val initialPinyin = PinyinEngine.toInitialLetters("${updatedNote.title} ${updatedNote.content}")
+        noteDao.insertFts(
+            NoteFtsEntity(
+                rowid = noteId,
+                title = updatedNote.title,
+                content = updatedNote.content,
+                pinyinFull = fullPinyin,
+                pinyinInitial = initialPinyin
+            )
+        )
+    }
+
+    /**
+     * 将备忘录中所有事项标记为已完成
+     */
+    suspend fun setNoteAllCompleted(noteId: Long) = withContext(Dispatchers.IO) {
+        val noteDetails = noteDao.getNoteByIdSync(noteId) ?: return@withContext
+        val newContent = MarkdownParser.setAllChecklistStatus(
+            noteDetails.note.content,
+            isCompleted = true,
+            fallbackTitle = noteDetails.note.title
+        )
+        val updatedNote = noteDetails.note.copy(
+            content = newContent,
+            updatedAt = System.currentTimeMillis()
+        )
+        noteDao.updateNote(updatedNote)
+
+        val fullPinyin = PinyinEngine.toFullPinyin("${updatedNote.title} ${updatedNote.content}")
+        val initialPinyin = PinyinEngine.toInitialLetters("${updatedNote.title} ${updatedNote.content}")
+        noteDao.insertFts(
+            NoteFtsEntity(
+                rowid = noteId,
+                title = updatedNote.title,
+                content = updatedNote.content,
+                pinyinFull = fullPinyin,
+                pinyinInitial = initialPinyin
+            )
+        )
+    }
+
+    /**
+     * 快速向备忘录追加一条新待办事项
+     */
+    suspend fun addChecklistItem(noteId: Long, text: String) = withContext(Dispatchers.IO) {
+        val noteDetails = noteDao.getNoteByIdSync(noteId) ?: return@withContext
+        val newContent = MarkdownParser.appendChecklistItem(noteDetails.note.content, text)
+        val updatedNote = noteDetails.note.copy(
+            content = newContent,
+            updatedAt = System.currentTimeMillis()
+        )
+        noteDao.updateNote(updatedNote)
+
+        val fullPinyin = PinyinEngine.toFullPinyin("${updatedNote.title} ${updatedNote.content}")
+        val initialPinyin = PinyinEngine.toInitialLetters("${updatedNote.title} ${updatedNote.content}")
+        noteDao.insertFts(
+            NoteFtsEntity(
+                rowid = noteId,
+                title = updatedNote.title,
+                content = updatedNote.content,
+                pinyinFull = fullPinyin,
+                pinyinInitial = initialPinyin
+            )
+        )
+    }
+
     suspend fun togglePin(noteId: Long, isPinned: Boolean) = withContext(Dispatchers.IO) {
         noteDao.setNotePinned(noteId, isPinned)
     }

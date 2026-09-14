@@ -524,13 +524,14 @@ fun HomeScreen(
                     // 设为待办选项卡片
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = if (!item.isCompleted) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surface,
+                        color = if (!item.isCompleted) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surface,
                         border = BorderStroke(1.dp, if (!item.isCompleted) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
                             .clickable {
                                 viewModel.setChecklistItemStatus(noteId, item.lineIndex, false)
+                                Toast.makeText(context, "已设置为待办事项", Toast.LENGTH_SHORT).show()
                                 activeChecklistItem = null
                             }
                     ) {
@@ -547,8 +548,8 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "设为待办 (未完成)",
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                                    text = "设置为待办",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                                 )
                                 Text(
                                     text = "恢复为未完成待办，开启彩色呼吸提醒",
@@ -564,13 +565,14 @@ fun HomeScreen(
                     // 标记完成选项卡片
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = if (item.isCompleted) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surface,
+                        color = if (item.isCompleted) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surface,
                         border = BorderStroke(1.dp, if (item.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
                             .clickable {
                                 viewModel.setChecklistItemStatus(noteId, item.lineIndex, true)
+                                Toast.makeText(context, "已标记为已完成", Toast.LENGTH_SHORT).show()
                                 activeChecklistItem = null
                             }
                     ) {
@@ -588,7 +590,7 @@ fun HomeScreen(
                             Column {
                                 Text(
                                     text = "标记为已完成",
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                                 )
                                 Text(
                                     text = "标记完成打勾，自动划线并停止闪烁",
@@ -611,6 +613,7 @@ fun HomeScreen(
                             .clip(RoundedCornerShape(12.dp))
                             .clickable {
                                 viewModel.deleteChecklistItem(noteId, item.lineIndex)
+                                Toast.makeText(context, "已删除此待办事项", Toast.LENGTH_SHORT).show()
                                 activeChecklistItem = null
                             }
                     ) {
@@ -628,11 +631,11 @@ fun HomeScreen(
                             Column {
                                 Text(
                                     text = "删除此事项",
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.error
                                 )
                                 Text(
-                                    text = "彻底从正文中移除此待办行",
+                                    text = "彻底从清单正文中移除此行",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
                                 )
@@ -654,20 +657,41 @@ fun HomeScreen(
     activeNoteForQuickAction?.let { item ->
         val note = item.note
         val checklistItems = MarkdownParser.extractChecklistItems(note.content)
+        val hasChecklist = checklistItems.isNotEmpty()
+
         AlertDialog(
             onDismissRequest = { activeNoteForQuickAction = null },
             shape = RoundedCornerShape(24.dp),
             title = {
-                Column {
-                    Text(
-                        text = note.title.ifBlank { "备忘录快捷操作" },
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (item.category != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(38.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Filled.FactCheck,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
                         Text(
-                            text = "分类: ${item.category.name}",
+                            text = note.title.ifBlank { "备忘录快捷操作" },
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = if (hasChecklist) {
+                                "待办清单 (${checklistItems.count { it.isCompleted }}/${checklistItems.size})"
+                            } else {
+                                item.category?.let { "分类: ${it.name}" } ?: "普通备忘录"
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -680,32 +704,155 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // 若备忘录含有待办项，直接在弹窗中展示其全部待办项并可快速切换/删除
-                    if (checklistItems.isNotEmpty()) {
+                    // 🌟 事项待办核心操作区（最为显眼、不可错过）
+                    Text(
+                        text = "事项待办操作",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // 1. 设置为待办 (核心功能)
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                viewModel.setNoteAsTodo(note.id)
+                                Toast.makeText(context, "已设置为待办事项", Toast.LENGTH_SHORT).show()
+                                activeNoteForQuickAction = null
+                            }
+                    ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.padding(12.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.FactCheck,
+                                imageVector = Icons.Outlined.RadioButtonUnchecked,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(24.dp)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "待办事项 (${checklistItems.count { it.isCompleted }}/${checklistItems.size})",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "设置为待办",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = if (hasChecklist) "重置所有事项为未完成待办，开启彩色呼吸提醒" else "将此备忘录转为待办事项清单，开启彩色呼吸提醒",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                            }
                         }
+                    }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // 2. 标记为已完成
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                viewModel.setNoteAllCompleted(note.id)
+                                Toast.makeText(context, "已标记为全部完成", Toast.LENGTH_SHORT).show()
+                                activeNoteForQuickAction = null
+                            }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CheckCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "标记为已完成",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "将所有待办事项标记打勾完成，划线并停止闪烁",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // 3. 删除此事项
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                viewModel.moveToTrash(note.id)
+                                Toast.makeText(context, "已移至回收站", Toast.LENGTH_SHORT).show()
+                                activeNoteForQuickAction = null
+                            }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.DeleteOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "删除此事项",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Text(
+                                    text = "将此备忘录放入回收站",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+                    }
+
+                    // 4. 若有单独的待办清单，展开展示每条细分条目与单独操作
+                    if (hasChecklist) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        HorizontalDivider()
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Text(
+                            text = "清单单项管理 (${checklistItems.count { it.isCompleted }}/${checklistItems.size})",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
 
                         checklistItems.forEach { chkItem ->
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 3.dp)
@@ -734,18 +881,16 @@ fun HomeScreen(
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.weight(1f)
                                     )
-                                    // 设为待办 / 标记完成 快速切换按钮
-                                    IconButton(
+                                    // 设为待办 / 标记完成 快速切换文字按钮
+                                    TextButton(
                                         onClick = {
                                             viewModel.setChecklistItemStatus(note.id, chkItem.lineIndex, !chkItem.isCompleted)
                                         },
-                                        modifier = Modifier.size(28.dp)
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                                     ) {
-                                        Icon(
-                                            imageVector = if (chkItem.isCompleted) Icons.Outlined.RadioButtonUnchecked else Icons.Filled.CheckCircle,
-                                            contentDescription = "切换完成状态",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(16.dp)
+                                        Text(
+                                            text = if (chkItem.isCompleted) "设为待办" else "完成",
+                                            style = MaterialTheme.typography.labelSmall
                                         )
                                     }
                                     // 删除该待办项
@@ -765,15 +910,15 @@ fun HomeScreen(
                                 }
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-                        HorizontalDivider()
-                        Spacer(modifier = Modifier.height(14.dp))
                     }
 
-                    // 便签级快捷操作
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 便签级更多操作
                     Text(
-                        text = "便签管理",
+                        text = "便签其他管理",
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -810,40 +955,22 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    OutlinedButton(
+                        onClick = {
+                            activeNoteForQuickAction = null
+                            viewModel.enterSelectionMode(note.id)
+                        },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        OutlinedButton(
-                            onClick = {
-                                activeNoteForQuickAction = null
-                                viewModel.enterSelectionMode(note.id)
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Filled.FactCheck, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("多选模式", style = MaterialTheme.typography.bodySmall)
-                        }
-
-                        Button(
-                            onClick = {
-                                viewModel.moveToTrash(note.id)
-                                activeNoteForQuickAction = null
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Outlined.DeleteOutline, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("移至回收站", style = MaterialTheme.typography.bodySmall)
-                        }
+                        Icon(Icons.Filled.FactCheck, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("进入批量多选模式", style = MaterialTheme.typography.bodySmall)
                     }
                 }
             },
             confirmButton = {
                 TextButton(onClick = { activeNoteForQuickAction = null }) {
-                    Text("完成")
+                    Text("关闭")
                 }
             }
         )

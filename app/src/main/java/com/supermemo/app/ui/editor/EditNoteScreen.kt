@@ -41,6 +41,9 @@ import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.FactCheck
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -159,6 +162,33 @@ fun EditNoteScreen(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
+                        DropdownMenuItem(
+                            text = { Text("转为待办事项清单") },
+                            leadingIcon = { Icon(Icons.Filled.FactCheck, contentDescription = null) },
+                            onClick = {
+                                showMenu = false
+                                viewModel.convertToTodoList()
+                                Toast.makeText(context, "已转换为待办事项清单", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("所有待办设为未完成") },
+                            leadingIcon = { Icon(Icons.Outlined.RadioButtonUnchecked, contentDescription = null) },
+                            onClick = {
+                                showMenu = false
+                                viewModel.setAllChecklistStatus(false)
+                                Toast.makeText(context, "已全部设为待办未完成", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("所有待办标记为完成") },
+                            leadingIcon = { Icon(Icons.Filled.CheckCircle, contentDescription = null) },
+                            onClick = {
+                                showMenu = false
+                                viewModel.setAllChecklistStatus(true)
+                                Toast.makeText(context, "已全部标记为完成", Toast.LENGTH_SHORT).show()
+                            }
+                        )
                         DropdownMenuItem(
                             text = { Text("分享为 Markdown") },
                             leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
