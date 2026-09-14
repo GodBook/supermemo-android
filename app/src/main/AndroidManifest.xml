@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 生物识别权限（用于私密备忘录与应用锁），零网络权限确保绝对本地隐私 -->
+    <!-- 生物识别权限（用于私密备忘录与应用锁） -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- 网络权限：严格仅用于请求 GitHub Releases API 检查新版本及下载更新 APK -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 调起系统安装器执行更新权限 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:name=".SuperMemoApp"

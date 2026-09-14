@@ -40,6 +40,12 @@
 - **零网络权限（Zero Network Permission）**：应用在清单中不声明 `android.permission.INTERNET`，从物理底层彻底杜绝数据外泄与云端跟踪。
 - **系统级生物识别**：支持指纹识别、人脸识别或锁屏密码，保护私密备忘录与应用启动安全。
 
+### 🔄 GitHub Releases 在线自动更新 (v1.1.0 新增)
+- **应用内一键检测**：通过直连 GitHub Releases API，自动比对语义化版本号，实时掌握最新版本动态。
+- **发布日志直观呈现**：直接在应用内展示版本更新说明与更新细节。
+- **断点友好带进度下载**：流式下载最新 APK，实时展示百分比与已下载 MB 数，下载完毕后平滑调起 Android 16 系统安装器完成一键升级。
+- **安全与权限专有化**：网络权限**严格且仅用于**访问 GitHub 检查更新与下载安装包，备忘录笔记数据依旧 100% 留存在本地设备。
+
 ### 📱 Android 16 专属特性
 - **Edge-to-Edge 边到边沉浸**：全屏避让 WindowInsets，状态栏与手势导航条全透明。
 - **软键盘智能跟随**：Markdown 快捷工具栏在软键盘弹起时平滑吸附于输入法正上方。
@@ -68,7 +74,8 @@ SuperMemo
 │   │   │   ├── PinyinEngine.kt          # 汉字拼音与首字母模糊匹配算法
 │   │   │   ├── SearchEngine.kt          # 多维复合检索与高亮摘录生成
 │   │   │   ├── MarkdownParser.kt        # Checklist 提取与富文本渲染
-│   │   │   └── BackupEngine.kt          # ZIP/JSON 打包备份与解压恢复
+│   │   │   ├── BackupEngine.kt          # ZIP/JSON 打包备份与解压恢复
+│   │   │   └── UpdateManager.kt         # GitHub Release 在线更新与下载管理
 │   │   └── model/                       # 业务传输模型与过滤条件
 │   ├── ui/
 │   │   ├── theme/                       # Material 3 动态色彩与主题
