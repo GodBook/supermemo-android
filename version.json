@@ -1,0 +1,11 @@
+﻿{
+  "versionCode": 4,
+  "versionName": "1.1.2",
+  "tagName": "v1.1.2",
+  "title": "v1.1.2 - 长按弹窗彻底修复、快捷交互增强与 UI 质感升级",
+  "notes": "1. 彻底解决长按无弹窗手势冲突，独立手势消费并支持震动触感反馈\n2. 待办清单每行新增 ⋯ 快捷操作按钮，轻触秒开弹窗\n3. 便签全域长按弹窗，集中管理全部待办与便签快捷操作\n4. 待办呼吸微光与 UI 视觉质感深度升级\n5. 彻底解决 GitHub API 403 频率限制报错，接入多通道极速免限频更新",
+  "publishedAt": "2026-09-14T10:19:00Z",
+  "apkDownloadUrl": "https://github.com/GodBook/supermemo-android/releases/download/v1.1.2/SuperMemo-Android16-v1.1.2.apk",
+  "apkFileName": "SuperMemo-Android16-v1.1.2.apk",
+  "apkSize": 20311478
+}
