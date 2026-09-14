@@ -114,6 +114,56 @@ class NoteRepository(
         )
     }
 
+    /**
+     * 设置待办事项指定行的完成状态（true: 标记完成, false: 设为待办）
+     */
+    suspend fun setChecklistItemStatus(noteId: Long, lineIndex: Int, isCompleted: Boolean) = withContext(Dispatchers.IO) {
+        val noteDetails = noteDao.getNoteByIdSync(noteId) ?: return@withContext
+        val newContent = MarkdownParser.setChecklistItemStatus(noteDetails.note.content, lineIndex, isCompleted)
+        val updatedNote = noteDetails.note.copy(
+            content = newContent,
+            updatedAt = System.currentTimeMillis()
+        )
+        noteDao.updateNote(updatedNote)
+
+        val fullPinyin = PinyinEngine.toFullPinyin("${updatedNote.title} ${updatedNote.content}")
+        val initialPinyin = PinyinEngine.toInitialLetters("${updatedNote.title} ${updatedNote.content}")
+        noteDao.insertFts(
+            NoteFtsEntity(
+                rowid = noteId,
+                title = updatedNote.title,
+                content = updatedNote.content,
+                pinyinFull = fullPinyin,
+                pinyinInitial = initialPinyin
+            )
+        )
+    }
+
+    /**
+     * 删除指定行待办事项
+     */
+    suspend fun deleteChecklistItem(noteId: Long, lineIndex: Int) = withContext(Dispatchers.IO) {
+        val noteDetails = noteDao.getNoteByIdSync(noteId) ?: return@withContext
+        val newContent = MarkdownParser.deleteChecklistItem(noteDetails.note.content, lineIndex)
+        val updatedNote = noteDetails.note.copy(
+            content = newContent,
+            updatedAt = System.currentTimeMillis()
+        )
+        noteDao.updateNote(updatedNote)
+
+        val fullPinyin = PinyinEngine.toFullPinyin("${updatedNote.title} ${updatedNote.content}")
+        val initialPinyin = PinyinEngine.toInitialLetters("${updatedNote.title} ${updatedNote.content}")
+        noteDao.insertFts(
+            NoteFtsEntity(
+                rowid = noteId,
+                title = updatedNote.title,
+                content = updatedNote.content,
+                pinyinFull = fullPinyin,
+                pinyinInitial = initialPinyin
+            )
+        )
+    }
+
     suspend fun togglePin(noteId: Long, isPinned: Boolean) = withContext(Dispatchers.IO) {
         noteDao.setNotePinned(noteId, isPinned)
     }

@@ -1,6 +1,11 @@
 package com.supermemo.app.ui.home.components
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -22,9 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.outlined.CheckCircleOutline
 import androidx.compose.material.icons.outlined.Circle
-import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -34,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,9 +48,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.supermemo.app.data.local.model.NoteWithDetails
+import com.supermemo.app.domain.engine.ChecklistItem
 import com.supermemo.app.domain.engine.MarkdownParser
 import com.supermemo.app.ui.theme.parseHexColor
 import com.supermemo.app.util.ImageStorageHelper
@@ -60,14 +64,30 @@ fun NoteCard(
     noteDetails: NoteWithDetails,
     isSelected: Boolean = false,
     isSelectionMode: Boolean = false,
+    isBlinkEnabled: Boolean = true,
+    blinkColorHex: String = "#FF9800",
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onToggleChecklistItem: (lineIndex: Int) -> Unit,
+    onChecklistItemLongClick: ((noteId: Long, item: ChecklistItem) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val note = noteDetails.note
     val context = LocalContext.current
     val cardBg = parseHexColor(note.colorHex, MaterialTheme.colorScheme.surfaceVariant)
+
+    // 待办事项动态呼吸闪烁动画
+    val infiniteTransition = rememberInfiniteTransition(label = "ChecklistBlink")
+    val blinkAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "BlinkAlpha"
+    )
+    val blinkColor = parseHexColor(blinkColorHex, Color(0xFFFF9800))
 
     Card(
         modifier = modifier
@@ -203,22 +223,48 @@ fun NoteCard(
 
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    // 预览前 3 个待办清单项，用户可以直接点击打勾！
+                    // 预览前 3 个待办清单项：支持点击打勾，长按弹出设置待办/完成/删除快捷菜单
                     val items = MarkdownParser.extractChecklistItems(note.content).take(3)
                     items.forEach { item ->
+                        val isItemBlinking = isBlinkEnabled && !item.isCompleted
+                        val itemRowBg = if (isItemBlinking) {
+                            blinkColor.copy(alpha = blinkAlpha * 0.12f)
+                        } else {
+                            Color.Transparent
+                        }
+
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(itemRowBg)
                                 .combinedClickable(
-                                    onClick = { onToggleChecklistItem(item.lineIndex) }
+                                    onClick = { onToggleChecklistItem(item.lineIndex) },
+                                    onLongClick = { onChecklistItemLongClick?.invoke(note.id, item) }
                                 )
-                                .padding(vertical = 2.dp)
+                                .padding(horizontal = 4.dp, vertical = 3.dp)
                         ) {
+                            // 未完成呼吸指示小圆点
+                            if (isItemBlinking) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .background(blinkColor.copy(alpha = blinkAlpha), CircleShape)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+
                             Icon(
                                 imageVector = if (item.isCompleted) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
                                 contentDescription = null,
-                                tint = if (item.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                tint = if (item.isCompleted) {
+                                    MaterialTheme.colorScheme.primary
+                                } else if (isItemBlinking) {
+                                    blinkColor.copy(alpha = blinkAlpha)
+                                } else {
+                                    MaterialTheme.colorScheme.outline
+                                },
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))

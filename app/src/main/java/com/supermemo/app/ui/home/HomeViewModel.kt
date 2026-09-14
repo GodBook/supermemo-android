@@ -138,6 +138,18 @@ class HomeViewModel(
         }
     }
 
+    fun setChecklistItemStatus(noteId: Long, lineIndex: Int, isCompleted: Boolean) {
+        viewModelScope.launch {
+            repository.setChecklistItemStatus(noteId, lineIndex, isCompleted)
+        }
+    }
+
+    fun deleteChecklistItem(noteId: Long, lineIndex: Int) {
+        viewModelScope.launch {
+            repository.deleteChecklistItem(noteId, lineIndex)
+        }
+    }
+
     fun enterSelectionMode(initialNoteId: Long? = null) {
         _isSelectionMode.value = true
         _selectedNoteIds.value = if (initialNoteId != null) setOf(initialNoteId) else emptySet()

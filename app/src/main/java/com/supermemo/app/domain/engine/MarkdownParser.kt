@@ -96,6 +96,39 @@ object MarkdownParser {
     }
 
     /**
+     * 显式设置指定行待办项的完成状态（true: [x], false: [ ]）
+     */
+    fun setChecklistItemStatus(content: String, targetLineIndex: Int, isCompleted: Boolean): String {
+        val lines = content.lines().toMutableList()
+        if (targetLineIndex !in lines.indices) return content
+
+        val line = lines[targetLineIndex]
+        val match = CHECKLIST_REGEX.find(line)
+        if (match != null) {
+            val prefix = match.groupValues[1]
+            val text = match.groupValues[3]
+            val newPrefix = if (isCompleted) {
+                prefix.replace(Regex("""\[[ xX]\]"""), "[x]")
+            } else {
+                prefix.replace(Regex("""\[[ xX]\]"""), "[ ]")
+            }
+            lines[targetLineIndex] = "$newPrefix$text"
+        }
+
+        return lines.joinToString("\n")
+    }
+
+    /**
+     * 删除指定行的待办事项，并重新拼接正文
+     */
+    fun deleteChecklistItem(content: String, targetLineIndex: Int): String {
+        val lines = content.lines().toMutableList()
+        if (targetLineIndex !in lines.indices) return content
+        lines.removeAt(targetLineIndex)
+        return lines.joinToString("\n")
+    }
+
+    /**
      * 将 Markdown 文本解析转换为富文本 AnnotatedString
      */
     fun renderMarkdown(

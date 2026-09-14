@@ -34,4 +34,24 @@ class MarkdownParserTest {
         val untoggled = MarkdownParser.toggleChecklistItem(toggled, 1)
         assertTrue("第二行应被取消勾选", untoggled.contains("- [ ] 买面包"))
     }
+
+    @Test
+    fun testSetChecklistItemStatus() {
+        val markdown = "- [ ] 任务A\n- [x] 任务B"
+        // 显式将任务A设为完成
+        val res1 = MarkdownParser.setChecklistItemStatus(markdown, 0, true)
+        assertTrue("任务A应被显式标记完成", res1.startsWith("- [x] 任务A"))
+
+        // 显式将任务B设为未完成待办
+        val res2 = MarkdownParser.setChecklistItemStatus(res1, 1, false)
+        assertTrue("任务B应被显式设为未完成待办", res2.contains("- [ ] 任务B"))
+    }
+
+    @Test
+    fun testDeleteChecklistItem() {
+        val markdown = "- [ ] 任务A\n- [ ] 待删除任务\n- [ ] 任务C"
+        val result = MarkdownParser.deleteChecklistItem(markdown, 1)
+        assertTrue("不应再包含待删除任务", !result.contains("待删除任务"))
+        assertEquals("- [ ] 任务A\n- [ ] 任务C", result)
+    }
 }

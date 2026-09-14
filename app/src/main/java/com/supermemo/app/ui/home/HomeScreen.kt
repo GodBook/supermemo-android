@@ -41,6 +41,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -63,12 +66,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import com.supermemo.app.data.local.model.NoteWithDetails
+import com.supermemo.app.domain.engine.ChecklistItem
 import com.supermemo.app.ui.category.CategoryManageDialog
 import com.supermemo.app.ui.home.components.CategoryDrawer
 import com.supermemo.app.ui.home.components.DrawerDestination
 import com.supermemo.app.ui.home.components.MultiSelectActionBar
 import com.supermemo.app.ui.home.components.NoteCard
 import com.supermemo.app.util.BiometricHelper
+import com.supermemo.app.util.PreferenceManager
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,12 +86,14 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val blinkSettings by PreferenceManager.settingsFlow.collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val activity = context as? FragmentActivity
 
     var showClearTrashDialog by remember { mutableStateOf(false) }
+    var activeChecklistItem by remember { mutableStateOf<Pair<Long, ChecklistItem>?>(null) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -254,6 +261,8 @@ fun HomeScreen(
                                         noteDetails = item,
                                         isSelected = isSelected,
                                         isSelectionMode = uiState.isSelectionMode,
+                                        isBlinkEnabled = blinkSettings.isEnabled,
+                                        blinkColorHex = blinkSettings.colorHex,
                                         onClick = { handleNoteClick(item) },
                                         onLongClick = {
                                             if (!uiState.isSelectionMode) {
@@ -262,6 +271,9 @@ fun HomeScreen(
                                         },
                                         onToggleChecklistItem = { lineIdx ->
                                             viewModel.toggleChecklistItem(item.note.id, lineIdx)
+                                        },
+                                        onChecklistItemLongClick = { noteId, chkItem ->
+                                            activeChecklistItem = noteId to chkItem
                                         }
                                     )
                                 }
@@ -278,6 +290,8 @@ fun HomeScreen(
                                         noteDetails = item,
                                         isSelected = isSelected,
                                         isSelectionMode = uiState.isSelectionMode,
+                                        isBlinkEnabled = blinkSettings.isEnabled,
+                                        blinkColorHex = blinkSettings.colorHex,
                                         onClick = { handleNoteClick(item) },
                                         onLongClick = {
                                             if (!uiState.isSelectionMode) {
@@ -286,6 +300,9 @@ fun HomeScreen(
                                         },
                                         onToggleChecklistItem = { lineIdx ->
                                             viewModel.toggleChecklistItem(item.note.id, lineIdx)
+                                        },
+                                        onChecklistItemLongClick = { noteId, chkItem ->
+                                            activeChecklistItem = noteId to chkItem
                                         }
                                     )
                                 }
@@ -392,6 +409,73 @@ fun HomeScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showClearTrashDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+
+    // 长按待办事项快捷操作弹窗
+    activeChecklistItem?.let { (noteId, item) ->
+        AlertDialog(
+            onDismissRequest = { activeChecklistItem = null },
+            title = {
+                Text(
+                    text = "待办事项快捷操作",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = item.text,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.setChecklistItemStatus(noteId, item.lineIndex, false)
+                                activeChecklistItem = null
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("设为待办")
+                        }
+
+                        Button(
+                            onClick = {
+                                viewModel.setChecklistItemStatus(noteId, item.lineIndex, true)
+                                activeChecklistItem = null
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("标记完成")
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Button(
+                        onClick = {
+                            viewModel.deleteChecklistItem(noteId, item.lineIndex)
+                            activeChecklistItem = null
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("删除此事项")
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { activeChecklistItem = null }) {
                     Text("取消")
                 }
             }

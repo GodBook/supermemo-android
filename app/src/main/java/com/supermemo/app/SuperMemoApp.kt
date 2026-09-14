@@ -17,6 +17,7 @@ class SuperMemoApp : Application() {
         instance = this
         database = AppDatabase.getInstance(this)
         repository = NoteRepository(database, this)
+        com.supermemo.app.util.PreferenceManager.init(this)
     }
 
     companion object {
