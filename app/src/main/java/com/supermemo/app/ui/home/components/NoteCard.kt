@@ -34,6 +34,12 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -74,6 +80,7 @@ fun NoteCard(
 ) {
     val note = noteDetails.note
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val cardBg = parseHexColor(note.colorHex, MaterialTheme.colorScheme.surfaceVariant)
 
     // 待办事项动态呼吸闪烁动画
@@ -92,15 +99,22 @@ fun NoteCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .combinedClickable(
                 onClick = onClick,
-                onLongClick = onLongClick
+                onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onLongClick()
+                }
             ),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = cardBg),
-        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp)
+        border = if (isSelected) {
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        } else {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+        },
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 1.5.dp)
     ) {
         Column(
             modifier = Modifier
@@ -223,36 +237,44 @@ fun NoteCard(
 
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    // 预览前 3 个待办清单项：支持点击打勾，长按弹出设置待办/完成/删除快捷菜单
+                    // 预览前 3 个待办清单项：点击切换打勾，长按或点⋯弹出设置待办/完成/删除快捷菜单
                     val items = MarkdownParser.extractChecklistItems(note.content).take(3)
                     items.forEach { item ->
                         val isItemBlinking = isBlinkEnabled && !item.isCompleted
                         val itemRowBg = if (isItemBlinking) {
-                            blinkColor.copy(alpha = blinkAlpha * 0.12f)
+                            blinkColor.copy(alpha = blinkAlpha * 0.15f)
                         } else {
-                            Color.Transparent
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.35f)
                         }
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(6.dp))
+                                .padding(vertical = 2.dp)
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(itemRowBg)
-                                .combinedClickable(
-                                    onClick = { onToggleChecklistItem(item.lineIndex) },
-                                    onLongClick = { onChecklistItemLongClick?.invoke(note.id, item) }
-                                )
-                                .padding(horizontal = 4.dp, vertical = 3.dp)
+                                .pointerInput(item.lineIndex, note.id, item.isCompleted) {
+                                    detectTapGestures(
+                                        onTap = {
+                                            onToggleChecklistItem(item.lineIndex)
+                                        },
+                                        onLongPress = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            onChecklistItemLongClick?.invoke(note.id, item)
+                                        }
+                                    )
+                                }
+                                .padding(start = 8.dp, end = 2.dp, top = 4.dp, bottom = 4.dp)
                         ) {
                             // 未完成呼吸指示小圆点
                             if (isItemBlinking) {
                                 Box(
                                     modifier = Modifier
-                                        .size(6.dp)
+                                        .size(7.dp)
                                         .background(blinkColor.copy(alpha = blinkAlpha), CircleShape)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
                             }
 
                             Icon(
@@ -261,22 +283,40 @@ fun NoteCard(
                                 tint = if (item.isCompleted) {
                                     MaterialTheme.colorScheme.primary
                                 } else if (isItemBlinking) {
-                                    blinkColor.copy(alpha = blinkAlpha)
+                                    blinkColor.copy(alpha = (blinkAlpha * 0.6f + 0.4f))
                                 } else {
                                     MaterialTheme.colorScheme.outline
                                 },
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = item.text,
                                 style = MaterialTheme.typography.bodySmall.copy(
-                                    textDecoration = if (item.isCompleted) TextDecoration.LineThrough else TextDecoration.None
+                                    textDecoration = if (item.isCompleted) TextDecoration.LineThrough else TextDecoration.None,
+                                    fontWeight = if (isItemBlinking) FontWeight.Medium else FontWeight.Normal
                                 ),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                color = if (item.isCompleted) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface
+                                color = if (item.isCompleted) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f)
                             )
+
+                            // 专属快捷操作图标按钮（点击直达快捷弹窗！）
+                            IconButton(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onChecklistItemLongClick?.invoke(note.id, item)
+                                },
+                                modifier = Modifier.size(30.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreHoriz,
+                                    contentDescription = "待办操作",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 } else {

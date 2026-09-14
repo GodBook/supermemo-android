@@ -3,6 +3,7 @@ package com.supermemo.app.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.supermemo.app.data.local.entity.CategoryEntity
+import com.supermemo.app.data.local.entity.NoteEntity
 import com.supermemo.app.data.local.model.NoteWithDetails
 import com.supermemo.app.data.repository.NoteRepository
 import com.supermemo.app.ui.home.components.DrawerDestination
@@ -240,6 +241,24 @@ class HomeViewModel(
     fun clearTrash() {
         viewModelScope.launch {
             repository.clearTrash()
+        }
+    }
+
+    fun togglePin(note: NoteEntity) {
+        viewModelScope.launch {
+            repository.togglePin(note.id, !note.isPinned)
+        }
+    }
+
+    fun toggleArchive(note: NoteEntity) {
+        viewModelScope.launch {
+            repository.toggleArchive(note.id, !note.isArchived)
+        }
+    }
+
+    fun moveToTrash(noteId: Long) {
+        viewModelScope.launch {
+            repository.moveToTrash(noteId)
         }
     }
 }
