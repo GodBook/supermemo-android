@@ -35,16 +35,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.automirrored.filled.FactCheck
+import androidx.compose.material.icons.automirrored.outlined.FactCheck
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.South
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.FactCheck
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedTextField
@@ -264,7 +264,7 @@ fun HomeScreen(
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
-                                            imageVector = if (uiState.currentDestination == DrawerDestination.TRASH) Icons.Outlined.DeleteOutline else Icons.Outlined.FactCheck,
+                                            imageVector = if (uiState.currentDestination == DrawerDestination.TRASH) Icons.Outlined.DeleteOutline else Icons.AutoMirrored.Outlined.FactCheck,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.size(38.dp)
@@ -319,6 +319,7 @@ fun HomeScreen(
                                 items(uiState.notes, key = { it.note.id }) { item ->
                                     val isSelected = uiState.selectedNoteIds.contains(item.note.id)
                                     NoteCard(
+                                        modifier = Modifier.animateItem(),
                                         noteDetails = item,
                                         isSelected = isSelected,
                                         isSelectionMode = uiState.isSelectionMode,
@@ -350,6 +351,7 @@ fun HomeScreen(
                                 items(uiState.notes, key = { it.note.id }) { item ->
                                     val isSelected = uiState.selectedNoteIds.contains(item.note.id)
                                     NoteCard(
+                                        modifier = Modifier.animateItem(),
                                         noteDetails = item,
                                         isSelected = isSelected,
                                         isSelectionMode = uiState.isSelectionMode,
@@ -494,7 +496,7 @@ fun HomeScreen(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
-                                imageVector = Icons.Filled.FactCheck,
+                                imageVector = Icons.AutoMirrored.Filled.FactCheck,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.size(20.dp)
@@ -761,7 +763,7 @@ fun HomeScreen(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
-                                imageVector = Icons.Filled.FactCheck,
+                                imageVector = Icons.AutoMirrored.Filled.FactCheck,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.size(22.dp)
@@ -1085,7 +1087,7 @@ fun HomeScreen(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Filled.FactCheck, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(Icons.AutoMirrored.Filled.FactCheck, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("进入批量多选模式", style = MaterialTheme.typography.bodySmall)
                     }

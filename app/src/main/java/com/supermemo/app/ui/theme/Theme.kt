@@ -17,21 +17,47 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = SkyDarkPrimary,
+    onPrimary = SkyDarkOnPrimary,
+    primaryContainer = SkyDarkPrimaryContainer,
+    onPrimaryContainer = SkyDarkOnPrimaryContainer,
+    secondary = SkyDarkSecondary,
+    onSecondary = SkyDarkOnSecondary,
+    secondaryContainer = SkyDarkSecondaryContainer,
+    onSecondaryContainer = SkyDarkOnSecondaryContainer,
+    tertiary = SkyDarkTertiary,
+    onTertiary = SkyDarkOnTertiary,
+    tertiaryContainer = SkyDarkTertiaryContainer,
+    background = SkyDarkBackground,
+    surface = SkyDarkSurface,
+    surfaceVariant = SkyDarkSurfaceVariant,
+    outline = SkyDarkOutline,
+    outlineVariant = SkyDarkOutlineVariant
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = SkyPrimary,
+    onPrimary = SkyOnPrimary,
+    primaryContainer = SkyPrimaryContainer,
+    onPrimaryContainer = SkyOnPrimaryContainer,
+    secondary = SkySecondary,
+    onSecondary = SkyOnSecondary,
+    secondaryContainer = SkySecondaryContainer,
+    onSecondaryContainer = SkyOnSecondaryContainer,
+    tertiary = SkyTertiary,
+    onTertiary = SkyOnTertiary,
+    tertiaryContainer = SkyTertiaryContainer,
+    background = SkyBackground,
+    surface = SkySurface,
+    surfaceVariant = SkySurfaceVariant,
+    outline = SkyOutline,
+    outlineVariant = SkyOutlineVariant
 )
 
 @Composable
 fun SuperMemoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     isAmoledBlack: Boolean = false,
     content: @Composable () -> Unit
 ) {

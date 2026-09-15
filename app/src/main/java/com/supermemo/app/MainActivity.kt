@@ -5,8 +5,16 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
@@ -62,7 +70,83 @@ class MainActivity : FragmentActivity() {
 
                     AnimatedContent(
                         targetState = currentScreen,
-                        transitionSpec = { fadeIn() togetherWith fadeOut() },
+                        transitionSpec = {
+                            val animDuration = 320
+                            val exitDuration = 260
+                            val enterEasing = FastOutSlowInEasing
+                            val exitEasing = FastOutSlowInEasing
+
+                            when {
+                                // 进入编辑器：轻微从底部升起 + 柔和缩放淡入
+                                targetState is AppScreen.Editor -> {
+                                    (slideInVertically(
+                                        initialOffsetY = { it / 6 },
+                                        animationSpec = tween(animDuration, easing = enterEasing)
+                                    ) + scaleIn(
+                                        initialScale = 0.95f,
+                                        animationSpec = tween(animDuration, easing = enterEasing)
+                                    ) + fadeIn(
+                                        animationSpec = tween(animDuration)
+                                    )) togetherWith (slideOutVertically(
+                                        targetOffsetY = { -it / 16 },
+                                        animationSpec = tween(exitDuration, easing = exitEasing)
+                                    ) + scaleOut(
+                                        targetScale = 0.98f,
+                                        animationSpec = tween(exitDuration, easing = exitEasing)
+                                    ) + fadeOut(
+                                        animationSpec = tween(exitDuration)
+                                    ))
+                                }
+                                // 从编辑器退回主页：轻微向下滑出 + 缩放淡出
+                                initialState is AppScreen.Editor && targetState is AppScreen.Home -> {
+                                    (slideInVertically(
+                                        initialOffsetY = { -it / 16 },
+                                        animationSpec = tween(animDuration, easing = enterEasing)
+                                    ) + scaleIn(
+                                        initialScale = 0.98f,
+                                        animationSpec = tween(animDuration, easing = enterEasing)
+                                    ) + fadeIn(
+                                        animationSpec = tween(animDuration)
+                                    )) togetherWith (slideOutVertically(
+                                        targetOffsetY = { it / 6 },
+                                        animationSpec = tween(exitDuration, easing = exitEasing)
+                                    ) + scaleOut(
+                                        targetScale = 0.95f,
+                                        animationSpec = tween(exitDuration, easing = exitEasing)
+                                    ) + fadeOut(
+                                        animationSpec = tween(exitDuration)
+                                    ))
+                                }
+                                // 进入搜索、设置、备份恢复页面：现代右侧平滑推入
+                                targetState is AppScreen.Search || targetState is AppScreen.Settings || targetState is AppScreen.BackupRestore -> {
+                                    (slideInHorizontally(
+                                        initialOffsetX = { it / 3 },
+                                        animationSpec = tween(animDuration, easing = enterEasing)
+                                    ) + fadeIn(
+                                        animationSpec = tween(animDuration)
+                                    )) togetherWith (slideOutHorizontally(
+                                        targetOffsetX = { -it / 6 },
+                                        animationSpec = tween(exitDuration, easing = exitEasing)
+                                    ) + fadeOut(
+                                        animationSpec = tween(exitDuration)
+                                    ))
+                                }
+                                // 从二级页面返回：右侧滑出
+                                else -> {
+                                    (slideInHorizontally(
+                                        initialOffsetX = { -it / 6 },
+                                        animationSpec = tween(animDuration, easing = enterEasing)
+                                    ) + fadeIn(
+                                        animationSpec = tween(animDuration)
+                                    )) togetherWith (slideOutHorizontally(
+                                        targetOffsetX = { it / 3 },
+                                        animationSpec = tween(exitDuration, easing = exitEasing)
+                                    ) + fadeOut(
+                                        animationSpec = tween(exitDuration)
+                                    ))
+                                }
+                            }
+                        },
                         label = "ScreenTransition"
                     ) { screen ->
                         when (screen) {

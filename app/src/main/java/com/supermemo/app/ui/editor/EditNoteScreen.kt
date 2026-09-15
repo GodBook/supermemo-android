@@ -4,6 +4,11 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -32,8 +37,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Lock
@@ -42,7 +48,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.South
-import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.PushPin
@@ -145,7 +150,7 @@ fun EditNoteScreen(
                         viewModel.saveNoteImmediately()
                         onNavigateBack()
                     }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "返回并保存")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回并保存")
                     }
                 },
                 actions = {
@@ -183,7 +188,7 @@ fun EditNoteScreen(
                     ) {
                         DropdownMenuItem(
                             text = { Text("转为待办事项清单") },
-                            leadingIcon = { Icon(Icons.Filled.FactCheck, contentDescription = null) },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.FactCheck, contentDescription = null) },
                             onClick = {
                                 showMenu = false
                                 viewModel.convertToTodoList()
@@ -265,8 +270,12 @@ fun EditNoteScreen(
                 .padding(horizontal = 18.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // 底色选择面板
-            if (showColorPicker) {
+            // 底色选择面板 (平滑展开/折叠动效)
+            AnimatedVisibility(
+                visible = showColorPicker,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier
