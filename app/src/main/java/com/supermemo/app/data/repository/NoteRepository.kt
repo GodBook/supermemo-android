@@ -246,6 +246,81 @@ class NoteRepository(
         )
     }
 
+    /**
+     * 更新指定行待办事项的内容文本（就地编辑）
+     */
+    suspend fun updateChecklistItemContent(noteId: Long, lineIndex: Int, newText: String) = withContext(Dispatchers.IO) {
+        val noteDetails = noteDao.getNoteByIdSync(noteId) ?: return@withContext
+        val newContent = MarkdownParser.updateChecklistItemContent(noteDetails.note.content, lineIndex, newText)
+        val updatedNote = noteDetails.note.copy(
+            content = newContent,
+            updatedAt = System.currentTimeMillis()
+        )
+        noteDao.updateNote(updatedNote)
+
+        val fullPinyin = PinyinEngine.toFullPinyin("${updatedNote.title} ${updatedNote.content}")
+        val initialPinyin = PinyinEngine.toInitialLetters("${updatedNote.title} ${updatedNote.content}")
+        noteDao.insertFts(
+            NoteFtsEntity(
+                rowid = noteId,
+                title = updatedNote.title,
+                content = updatedNote.content,
+                pinyinFull = fullPinyin,
+                pinyinInitial = initialPinyin
+            )
+        )
+    }
+
+    /**
+     * 将备忘录内的已完成待办事项沉底
+     */
+    suspend fun sinkCompletedChecklist(noteId: Long) = withContext(Dispatchers.IO) {
+        val noteDetails = noteDao.getNoteByIdSync(noteId) ?: return@withContext
+        val newContent = MarkdownParser.sinkCompletedChecklistItems(noteDetails.note.content)
+        val updatedNote = noteDetails.note.copy(
+            content = newContent,
+            updatedAt = System.currentTimeMillis()
+        )
+        noteDao.updateNote(updatedNote)
+
+        val fullPinyin = PinyinEngine.toFullPinyin("${updatedNote.title} ${updatedNote.content}")
+        val initialPinyin = PinyinEngine.toInitialLetters("${updatedNote.title} ${updatedNote.content}")
+        noteDao.insertFts(
+            NoteFtsEntity(
+                rowid = noteId,
+                title = updatedNote.title,
+                content = updatedNote.content,
+                pinyinFull = fullPinyin,
+                pinyinInitial = initialPinyin
+            )
+        )
+    }
+
+    /**
+     * 快速更新便签底色
+     */
+    suspend fun updateNoteColor(noteId: Long, colorHex: String?) = withContext(Dispatchers.IO) {
+        val noteDetails = noteDao.getNoteByIdSync(noteId) ?: return@withContext
+        val updatedNote = noteDetails.note.copy(
+            colorHex = colorHex,
+            updatedAt = System.currentTimeMillis()
+        )
+        noteDao.updateNote(updatedNote)
+    }
+
+    /**
+     * 快速修改便签所属分组
+     */
+    suspend fun updateNoteCategory(noteId: Long, categoryId: Long?) = withContext(Dispatchers.IO) {
+        val noteDetails = noteDao.getNoteByIdSync(noteId) ?: return@withContext
+        val updatedNote = noteDetails.note.copy(
+            categoryId = categoryId,
+            updatedAt = System.currentTimeMillis()
+        )
+        noteDao.updateNote(updatedNote)
+    }
+
+
     suspend fun togglePin(noteId: Long, isPinned: Boolean) = withContext(Dispatchers.IO) {
         noteDao.setNotePinned(noteId, isPinned)
     }

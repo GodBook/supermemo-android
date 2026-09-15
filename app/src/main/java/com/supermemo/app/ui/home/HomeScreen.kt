@@ -27,20 +27,32 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FactCheck
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.South
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FactCheck
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.supermemo.app.ui.theme.NoteCardColors
+import com.supermemo.app.ui.theme.parseHexColor
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -112,8 +124,11 @@ fun HomeScreen(
     val context = LocalContext.current
     val activity = context as? FragmentActivity
 
+    val haptic = LocalHapticFeedback.current
+
     var showClearTrashDialog by remember { mutableStateOf(false) }
     var activeChecklistItem by remember { mutableStateOf<Pair<Long, ChecklistItem>?>(null) }
+    var editingChecklistItem by remember { mutableStateOf<Triple<Long, ChecklistItem, String>?>(null) }
     var activeNoteForQuickAction by remember { mutableStateOf<NoteWithDetails?>(null) }
 
     ModalNavigationDrawer(
@@ -603,7 +618,47 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // 删除此事项选项卡片
+                    // 3. 修改此项内容
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.35f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                editingChecklistItem = Triple(noteId, item, item.text)
+                                activeChecklistItem = null
+                            }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "修改此项内容",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                )
+                                Text(
+                                    text = "就地快速修改待办文字并保存",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // 4. 删除此事项选项卡片
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f),
@@ -648,6 +703,41 @@ fun HomeScreen(
             dismissButton = {
                 TextButton(onClick = { activeChecklistItem = null }) {
                     Text("取消", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        )
+    }
+
+    // 就地修改待办事项内容弹窗
+    editingChecklistItem?.let { (noteId, item, initialText) ->
+        var editText by remember { mutableStateOf(initialText) }
+        AlertDialog(
+            onDismissRequest = { editingChecklistItem = null },
+            shape = RoundedCornerShape(20.dp),
+            title = { Text("修改待办事项内容", fontWeight = FontWeight.Bold) },
+            text = {
+                OutlinedTextField(
+                    value = editText,
+                    onValueChange = { editText = it },
+                    label = { Text("待办文字") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    if (editText.isNotBlank()) {
+                        viewModel.editChecklistItemText(noteId, item.lineIndex, editText.trim())
+                        Toast.makeText(context, "已更新待办内容", Toast.LENGTH_SHORT).show()
+                    }
+                    editingChecklistItem = null
+                }) {
+                    Text("保存")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingChecklistItem = null }) {
+                    Text("取消")
                 }
             }
         )
@@ -842,11 +932,29 @@ fun HomeScreen(
                         HorizontalDivider()
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        Text(
-                            text = "清单单项管理 (${checklistItems.count { it.isCompleted }}/${checklistItems.size})",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.outline
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "清单单项管理 (${checklistItems.count { it.isCompleted }}/${checklistItems.size})",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                            TextButton(
+                                onClick = {
+                                    viewModel.sinkCompletedChecklist(note.id)
+                                    Toast.makeText(context, "已将已完成事项移至底部", Toast.LENGTH_SHORT).show()
+                                    activeNoteForQuickAction = null
+                                },
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Icon(Icons.Filled.South, contentDescription = null, modifier = Modifier.size(13.dp))
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text("已完成沉底", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
                         Spacer(modifier = Modifier.height(6.dp))
 
                         checklistItems.forEach { chkItem ->
@@ -886,11 +994,26 @@ fun HomeScreen(
                                         onClick = {
                                             viewModel.setChecklistItemStatus(note.id, chkItem.lineIndex, !chkItem.isCompleted)
                                         },
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
                                         Text(
                                             text = if (chkItem.isCompleted) "设为待办" else "完成",
                                             style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                    // 编辑文字
+                                    IconButton(
+                                        onClick = {
+                                            editingChecklistItem = Triple(note.id, chkItem, chkItem.text)
+                                            activeNoteForQuickAction = null
+                                        },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Edit,
+                                            contentDescription = "修改内容",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(15.dp)
                                         )
                                     }
                                     // 删除该待办项
@@ -965,6 +1088,76 @@ fun HomeScreen(
                         Icon(Icons.Filled.FactCheck, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("进入批量多选模式", style = MaterialTheme.typography.bodySmall)
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "便签色彩",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(NoteCardColors) { hex ->
+                            val isSelected = hex.equals(note.colorHex, ignoreCase = true) || (note.colorHex == null && hex == "#FFFFFF")
+                            val color = parseHexColor(hex, Color.White)
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .border(
+                                        width = if (isSelected) 2.5.dp else 1.dp,
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.4f),
+                                        shape = CircleShape
+                                    )
+                                    .clickable {
+                                        viewModel.changeNoteColor(note.id, if (hex == "#FFFFFF") null else hex)
+                                        Toast.makeText(context, "已更新便签色彩", Toast.LENGTH_SHORT).show()
+                                        activeNoteForQuickAction = null
+                                    }
+                            )
+                        }
+                    }
+
+                    if (uiState.categories.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "所属分组",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            item {
+                                ElevatedFilterChip(
+                                    selected = note.categoryId == null,
+                                    onClick = {
+                                        viewModel.changeNoteCategory(note.id, null)
+                                        Toast.makeText(context, "已移至默认无分组", Toast.LENGTH_SHORT).show()
+                                        activeNoteForQuickAction = null
+                                    },
+                                    label = { Text("无分组", style = MaterialTheme.typography.labelSmall) }
+                                )
+                            }
+                            items(uiState.categories) { cat ->
+                                ElevatedFilterChip(
+                                    selected = note.categoryId == cat.id,
+                                    onClick = {
+                                        viewModel.changeNoteCategory(note.id, cat.id)
+                                        Toast.makeText(context, "已移至分组: ${cat.name}", Toast.LENGTH_SHORT).show()
+                                        activeNoteForQuickAction = null
+                                    },
+                                    label = { Text(cat.name, style = MaterialTheme.typography.labelSmall) }
+                                )
+                            }
+                        }
                     }
                 }
             },

@@ -54,4 +54,52 @@ class MarkdownParserTest {
         assertTrue("不应再包含待删除任务", !result.contains("待删除任务"))
         assertEquals("- [ ] 任务A\n- [ ] 任务C", result)
     }
+
+    @Test
+    fun testUpdateChecklistItemContent() {
+        val markdown = "- [ ] 买牛奶\n- [x] 买面包"
+        val updated = MarkdownParser.updateChecklistItemContent(markdown, 0, "买脱脂牛奶")
+        assertEquals("- [ ] 买脱脂牛奶\n- [x] 买面包", updated)
+
+        val updatedCompleted = MarkdownParser.updateChecklistItemContent(markdown, 1, "全麦吐司")
+        assertEquals("- [ ] 买牛奶\n- [x] 全麦吐司", updatedCompleted)
+    }
+
+    @Test
+    fun testSinkCompletedChecklistItems() {
+        val markdown = """
+            # 今日计划
+            - [x] 任务一 (已完成)
+            - [ ] 任务二 (待办)
+            - [x] 任务三 (已完成)
+            - [ ] 任务四 (待办)
+        """.trimIndent()
+
+        val sunk = MarkdownParser.sinkCompletedChecklistItems(markdown)
+        val lines = sunk.lines()
+        assertEquals("# 今日计划", lines[0])
+        assertTrue("未完成任务应排在前", lines[1].startsWith("- [ ] 任务二"))
+        assertTrue("未完成任务应排在前", lines[2].startsWith("- [ ] 任务四"))
+        assertTrue("已完成任务应沉底", lines[3].startsWith("- [x] 任务一"))
+        assertTrue("已完成任务应沉底", lines[4].startsWith("- [x] 任务三"))
+    }
+
+    @Test
+    fun testSmartEnter() {
+        // 场景1：在有内容的待办后回车，自动追加新待办
+        val oldText = "- [ ] 买牛奶"
+        val enterText = "- [ ] 买牛奶\n"
+        val res1 = MarkdownParser.handleSmartEnter(oldText, enterText, enterText.length)
+        assertNotNull(res1)
+        assertEquals("- [ ] 买牛奶\n- [ ] ", res1!!.newText)
+        assertEquals(enterText.length + 6, res1.newCursorPosition)
+
+        // 场景2：在空白待办行回车，自动清除待办退出
+        val oldEmpty = "- [ ] 买牛奶\n- [ ] "
+        val enterEmpty = "- [ ] 买牛奶\n- [ ] \n"
+        val res2 = MarkdownParser.handleSmartEnter(oldEmpty, enterEmpty, enterEmpty.length)
+        assertNotNull(res2)
+        assertEquals("- [ ] 买牛奶\n", res2!!.newText)
+    }
 }
+

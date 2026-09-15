@@ -129,6 +129,101 @@ object MarkdownParser {
     }
 
     /**
+     * 更新指定行的待办项文本内容（保持原有勾选状态与前缀不变）
+     */
+    fun updateChecklistItemContent(content: String, targetLineIndex: Int, newText: String): String {
+        val lines = content.lines().toMutableList()
+        if (targetLineIndex !in lines.indices) return content
+
+        val line = lines[targetLineIndex]
+        val match = CHECKLIST_REGEX.find(line)
+        if (match != null) {
+            val prefix = match.groupValues[1]
+            lines[targetLineIndex] = "$prefix${newText.trim()}"
+        }
+        return lines.joinToString("\n")
+    }
+
+    /**
+     * 将待办清单中的已完成事项自动下沉排列到所属清单块的底部
+     */
+    fun sinkCompletedChecklistItems(content: String): String {
+        val lines = content.lines()
+        val resultLines = lines.toMutableList()
+        var idx = 0
+        while (idx < resultLines.size) {
+            if (CHECKLIST_REGEX.containsMatchIn(resultLines[idx])) {
+                val blockStart = idx
+                while (idx < resultLines.size && CHECKLIST_REGEX.containsMatchIn(resultLines[idx])) {
+                    idx++
+                }
+                val blockEnd = idx
+                val blockItems = resultLines.subList(blockStart, blockEnd)
+                val uncompleted = blockItems.filter {
+                    val m = CHECKLIST_REGEX.find(it)
+                    m == null || !m.groupValues[2].equals("x", ignoreCase = true)
+                }
+                val completed = blockItems.filter {
+                    val m = CHECKLIST_REGEX.find(it)
+                    m != null && m.groupValues[2].equals("x", ignoreCase = true)
+                }
+                val reordered = uncompleted + completed
+                for (j in reordered.indices) {
+                    resultLines[blockStart + j] = reordered[j]
+                }
+            } else {
+                idx++
+            }
+        }
+        return resultLines.joinToString("\n")
+    }
+
+    data class SmartEnterResult(
+        val newText: String,
+        val newCursorPosition: Int
+    )
+
+    /**
+     * 智能回车处理：
+     * 1. 若上一行为待办事项且有内容，回车时自动添加 `- [ ] ` 待办前缀
+     * 2. 若上一行为空白待办项（用户在空待办按回车），自动清除待办前缀并退出清单模式
+     */
+    fun handleSmartEnter(oldText: String, newText: String, cursorPos: Int): SmartEnterResult? {
+        if (cursorPos <= 0 || cursorPos > newText.length) return null
+        if (newText[cursorPos - 1] != '\n') return null
+        if (newText.length <= oldText.length) return null
+
+        val prevLineEnd = cursorPos - 1
+        val prevLineStart = newText.lastIndexOf('\n', prevLineEnd - 1).let { if (it == -1) 0 else it + 1 }
+        val prevLine = newText.substring(prevLineStart, prevLineEnd)
+
+        // 检查上一行是否为待办项
+        val match = CHECKLIST_REGEX.find(prevLine)
+        if (match != null) {
+            val text = match.groupValues[3]
+            if (text.isBlank()) {
+                // 用户在空白待办行按回车 -> 退出清单模式，清除该行的待办前缀
+                val before = newText.substring(0, prevLineStart)
+                val after = newText.substring(cursorPos)
+                val resultText = before + after
+                val resultCursor = prevLineStart
+                return SmartEnterResult(resultText, resultCursor)
+            } else {
+                // 上一行有待办内容 -> 自动追加新待办前缀
+                val indent = prevLine.takeWhile { it.isWhitespace() }
+                val prefix = "$indent- [ ] "
+                val before = newText.substring(0, cursorPos)
+                val after = newText.substring(cursorPos)
+                val resultText = before + prefix + after
+                val resultCursor = cursorPos + prefix.length
+                return SmartEnterResult(resultText, resultCursor)
+            }
+        }
+        return null
+    }
+
+
+    /**
      * 将备忘录正文整体转为待办事项清单（普通文本加 `- [ ]`，已有待办重置为未完成待办）
      */
     fun convertContentToTodoList(content: String, fallbackTitle: String = ""): String {

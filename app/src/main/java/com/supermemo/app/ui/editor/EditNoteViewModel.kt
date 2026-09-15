@@ -102,6 +102,13 @@ class EditNoteViewModel(
         updateContent(newContent)
     }
 
+    fun sinkCompletedChecklist() {
+        val currentContent = _uiState.value.content
+        val newContent = MarkdownParser.sinkCompletedChecklistItems(currentContent)
+        updateContent(newContent)
+    }
+
+
     fun setCategory(catId: Long?) {
         _uiState.value = _uiState.value.copy(categoryId = catId, isSaved = false)
         scheduleAutoSave()

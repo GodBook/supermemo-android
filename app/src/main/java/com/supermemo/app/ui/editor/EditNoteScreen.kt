@@ -41,10 +41,14 @@ import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.South
 import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -98,6 +102,21 @@ fun EditNoteScreen(
     var showColorPicker by remember { mutableStateOf(false) }
     var showCategoryDropdown by remember { mutableStateOf(false) }
     var showAddTagDialog by remember { mutableStateOf(false) }
+
+    var contentTextFieldValue by remember {
+        mutableStateOf(TextFieldValue(uiState.content, TextRange(uiState.content.length)))
+    }
+
+    LaunchedEffect(uiState.content) {
+        if (contentTextFieldValue.text != uiState.content) {
+            val safePos = minOf(contentTextFieldValue.selection.start, uiState.content.length)
+            contentTextFieldValue = contentTextFieldValue.copy(
+                text = uiState.content,
+                selection = TextRange(safePos)
+            )
+        }
+    }
+
 
     // Android 13/14/15/16 系统相册选择器
     val photoPickerLauncher = rememberLauncherForActivityResult(
@@ -190,6 +209,15 @@ fun EditNoteScreen(
                             }
                         )
                         DropdownMenuItem(
+                            text = { Text("已完成待办移至底部") },
+                            leadingIcon = { Icon(Icons.Filled.South, contentDescription = null) },
+                            onClick = {
+                                showMenu = false
+                                viewModel.sinkCompletedChecklist()
+                                Toast.makeText(context, "已将完成事项移至底部", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                        DropdownMenuItem(
                             text = { Text("分享为 Markdown") },
                             leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
                             onClick = {
@@ -211,8 +239,15 @@ fun EditNoteScreen(
                 isPreviewMode = uiState.isPreviewMode,
                 onTogglePreview = { viewModel.togglePreviewMode() },
                 onInsertText = { prefix, suffix ->
-                    val newContent = uiState.content + prefix + suffix
-                    viewModel.updateContent(newContent)
+                    val oldTfv = contentTextFieldValue
+                    val start = minOf(oldTfv.selection.min, oldTfv.text.length)
+                    val end = minOf(oldTfv.selection.max, oldTfv.text.length)
+                    val selectedText = oldTfv.text.substring(start, end)
+                    val replacement = prefix + selectedText + suffix
+                    val newText = oldTfv.text.replaceRange(start, end, replacement)
+                    val newCursor = start + prefix.length + selectedText.length + suffix.length
+                    contentTextFieldValue = TextFieldValue(newText, TextRange(newCursor))
+                    viewModel.updateContent(newText)
                 },
                 onPickImage = {
                     photoPickerLauncher.launch(
@@ -439,8 +474,25 @@ fun EditNoteScreen(
                 }
             } else {
                 BasicTextField(
-                    value = uiState.content,
-                    onValueChange = { viewModel.updateContent(it) },
+                    value = contentTextFieldValue,
+                    onValueChange = { newTfv ->
+                        val oldText = contentTextFieldValue.text
+                        val newText = newTfv.text
+                        val cursorPos = newTfv.selection.start
+
+                        val smartEnter = MarkdownParser.handleSmartEnter(oldText, newText, cursorPos)
+                        if (smartEnter != null) {
+                            val updatedTfv = TextFieldValue(
+                                text = smartEnter.newText,
+                                selection = TextRange(smartEnter.newCursorPosition)
+                            )
+                            contentTextFieldValue = updatedTfv
+                            viewModel.updateContent(smartEnter.newText)
+                        } else {
+                            contentTextFieldValue = newTfv
+                            viewModel.updateContent(newText)
+                        }
+                    },
                     textStyle = TextStyle(
                         fontSize = 17.sp,
                         lineHeight = 26.sp,
@@ -448,7 +500,7 @@ fun EditNoteScreen(
                     ),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                     decorationBox = { innerTextField ->
-                        if (uiState.content.isEmpty()) {
+                        if (contentTextFieldValue.text.isEmpty()) {
                             Text(
                                 text = "开始记录备忘录内容... 支持 Markdown 语法与待办清单",
                                 style = TextStyle(

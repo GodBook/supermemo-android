@@ -1,11 +1,11 @@
 {
-  "versionCode": 5,
-  "versionName": "1.1.3",
-  "tagName": "v1.1.3",
-  "title": "v1.1.3 - 长按弹窗新增「设置为待办」与事项快捷操作",
-  "notes": "1. 长按弹窗新增显式「设置为待办」核心选项，一键将备忘录转为待办事项清单并开启彩色呼吸提醒\n2. 新增「标记为已完成」与「删除此事项」快捷操作，长按事项即可高效管理\n3. 待办清单支持逐项切换待办/完成及单项快速删除\n4. 编辑器更多菜单新增转换为待办事项清单功能\n5. 保持极速多通道 CDN 免限频在线更新",
-  "publishedAt": "2026-09-14T10:32:00Z",
-  "apkDownloadUrl": "https://github.com/GodBook/supermemo-android/releases/download/v1.1.3/SuperMemo-Android16-v1.1.3.apk",
-  "apkFileName": "SuperMemo-Android16-v1.1.3.apk",
-  "apkSize": 20287226
+  "versionCode": 6,
+  "versionName": "1.1.4",
+  "tagName": "v1.1.4",
+  "title": "v1.1.4 - 待办工作流进化与智能编辑升级",
+  "notes": "1. 待办事项支持已完成自动沉底与长按就地快速编辑文本\n2. 编辑器新增待办智能回车自动续行与光标级排版工具栏\n3. 长按操作面板新增快捷切换色彩与修改所属分组\n4. 便签快捷弹窗单项管理新增编辑与沉底操作\n5. 保持极速多通道 CDN 免限频在线更新",
+  "publishedAt": "2026-09-15T02:50:00Z",
+  "apkDownloadUrl": "https://github.com/GodBook/supermemo-android/releases/download/v1.1.4/SuperMemo-Android16-v1.1.4.apk",
+  "apkFileName": "SuperMemo-Android16-v1.1.4.apk",
+  "apkSize": 20401892
 }

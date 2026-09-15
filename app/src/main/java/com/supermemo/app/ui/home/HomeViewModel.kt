@@ -169,6 +169,31 @@ class HomeViewModel(
         }
     }
 
+    fun editChecklistItemText(noteId: Long, lineIndex: Int, newText: String) {
+        viewModelScope.launch {
+            repository.updateChecklistItemContent(noteId, lineIndex, newText)
+        }
+    }
+
+    fun sinkCompletedChecklist(noteId: Long) {
+        viewModelScope.launch {
+            repository.sinkCompletedChecklist(noteId)
+        }
+    }
+
+    fun changeNoteColor(noteId: Long, colorHex: String?) {
+        viewModelScope.launch {
+            repository.updateNoteColor(noteId, colorHex)
+        }
+    }
+
+    fun changeNoteCategory(noteId: Long, categoryId: Long?) {
+        viewModelScope.launch {
+            repository.updateNoteCategory(noteId, categoryId)
+        }
+    }
+
+
     fun enterSelectionMode(initialNoteId: Long? = null) {
         _isSelectionMode.value = true
         _selectedNoteIds.value = if (initialNoteId != null) setOf(initialNoteId) else emptySet()
